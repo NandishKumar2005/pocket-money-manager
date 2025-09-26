@@ -1,5 +1,6 @@
 // server.js
 const express = require('express')
+const cors = require('cors')
 const dotenv = require('dotenv')
 const path = require('path')
 const connectDB = require('./config/db')
@@ -18,6 +19,50 @@ connectDB()
 
 const app = express()
 
+// CORS middleware
+// Allow localhost and 127.0.0.1 (any port) during development to support IDE/browser proxies
+app.use(cors({
+  origin: [
+    /^http:\/\/localhost:\d+$/,
+    /^http:\/\/127\.0\.0\.1:\d+$/,
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With',
+    'Content-Type',
+    'Accept',
+    'Authorization',
+    'Cache-Control',
+    'Pragma'
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+}))
+
+// Additional CORS headers for preflight requests
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  console.log(`CORS Request: ${req.method} ${req.url} from origin: ${origin}`);
+  
+  res.header('Access-Control-Allow-Origin', origin);
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    console.log(`Preflight request handled for ${req.url}`);
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+})
+
 // built-in middleware to parse JSON bodies
 app.use(express.json())
 
@@ -34,8 +79,11 @@ app.use('/api/transactions', transactionRoutes)
 app.use(errorHandler)
 
 const PORT = process.env.PORT || 4000
-app.listen(PORT, () =>
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`)
-)
+  console.log(`Server accessible at:`)
+  console.log(`  - http://localhost:${PORT}`)
+  console.log(`  - http://127.0.0.1:${PORT}`)
+})
 
 
