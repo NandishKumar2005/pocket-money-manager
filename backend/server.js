@@ -38,7 +38,7 @@ if (process.env.FRONTEND_URL) {
 }
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: true, // Temporarily allow all origins for debugging
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
     'Origin',
