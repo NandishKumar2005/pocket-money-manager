@@ -10,8 +10,8 @@ const { errorHandler } = require('./middleware/errorMiddleware')
 
 dotenv.config({ path: path.join(__dirname, '.env'), override: true })
 // Temporary sanity check to ensure envs are loaded
-if (!process.env.MONGO_URI) {
-  console.warn('MONGO_URI is not set from .env; please check .env loading')
+if (!process.env.MONGODB_URI && !process.env.MONGO_URI) {
+  console.warn('MONGODB_URI is not set from .env; please check .env loading')
 }
 
 // connect to MongoDB
@@ -20,16 +20,25 @@ connectDB()
 const app = express()
 
 // CORS middleware
-// Allow localhost and 127.0.0.1 (any port) during development to support IDE/browser proxies
+// Allow localhost for development and deployed frontend URL for production
+const allowedOrigins = [
+  // Development origins
+  /^http:\/\/localhost:\d+$/,
+  /^http:\/\/127\.0\.0\.1:\d+$/,
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000'
+];
+
+// Add production frontend URL if provided
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+  console.log('Added FRONTEND_URL to CORS origins:', process.env.FRONTEND_URL);
+}
+
 app.use(cors({
-  origin: [
-    /^http:\/\/localhost:\d+$/,
-    /^http:\/\/127\.0\.0\.1:\d+$/,
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:3000',
-    'http://127.0.0.1:3000'
-  ],
+  origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
     'Origin',

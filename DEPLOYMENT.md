@@ -25,6 +25,7 @@
      NODE_ENV=production
      FRONTEND_URL=https://your-frontend-app.vercel.app
      ```
+   - **IMPORTANT**: Replace `https://your-frontend-app.vercel.app` with your actual frontend URL after deployment
 
 3. **Deploy Backend**
    - Vercel will automatically deploy your backend
@@ -96,9 +97,11 @@ VITE_API_BASE_URL=https://your-backend.vercel.app/api
 
 ### Common Issues
 
-1. **CORS Errors**
-   - Ensure `FRONTEND_URL` in backend matches your frontend URL exactly
+1. **CORS Errors / Login/Signup Not Working**
+   - **Most Common Issue**: Ensure `FRONTEND_URL` in backend environment variables matches your frontend URL exactly
    - Check that CORS is properly configured in server.js
+   - Verify the frontend URL includes the protocol (https://) and no trailing slash
+   - After updating `FRONTEND_URL`, redeploy the backend for changes to take effect
 
 2. **Database Connection**
    - Verify MongoDB URI is correct
