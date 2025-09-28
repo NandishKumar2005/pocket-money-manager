@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { transactionsAPI } from '../services/api';
 import { 
   Plus, 
@@ -35,6 +35,39 @@ const Transactions = () => {
     date: new Date().toISOString().split('T')[0],
     note: ''
   });
+
+  // Refs for text inputs to control cursor position
+  const noteRef = useRef(null);
+  const searchRef = useRef(null);
+
+  // Handle text input to prevent cursor jumping
+  const handleNoteChange = (e) => {
+    const value = e.target.value;
+    const cursorPosition = e.target.selectionStart;
+    
+    setFormData(prev => ({...prev, note: value}));
+    
+    // Use requestAnimationFrame for better timing
+    requestAnimationFrame(() => {
+      if (noteRef.current) {
+        noteRef.current.setSelectionRange(cursorPosition, cursorPosition);
+      }
+    });
+  };
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    const cursorPosition = e.target.selectionStart;
+    
+    setSearchTerm(value);
+    
+    // Use requestAnimationFrame for better timing
+    requestAnimationFrame(() => {
+      if (searchRef.current) {
+        searchRef.current.setSelectionRange(cursorPosition, cursorPosition);
+      }
+    });
+  };
 
   const categories = [
     'Food', 'Transport', 'Entertainment', 'Shopping', 'Bills', 
@@ -144,6 +177,16 @@ const Transactions = () => {
     setShowModal(true);
   };
 
+  const clearFilters = () => {
+    setSearchTerm('');
+    setFilters({
+      type: 'all',
+      category: 'all',
+      dateFrom: '',
+      dateTo: ''
+    });
+  };
+
   const closeModal = () => {
     setShowModal(false);
     setEditingTransaction(null);
@@ -197,7 +240,7 @@ const Transactions = () => {
             <p className={`text-lg font-bold ${
               transaction.type === 'income' ? 'text-accent-success' : 'text-accent-danger'
             }`}>
-              {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toLocaleString()}
+              {transaction.type === 'income' ? '+' : '-'}₹{transaction.amount.toLocaleString()}
             </p>
             <p className="text-xs text-muted capitalize">{transaction.type}</p>
           </div>
@@ -279,7 +322,7 @@ const Transactions = () => {
             <div>
               <label className="block text-sm font-medium text-primary mb-2">Amount</label>
               <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted" />
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted pointer-events-none font-semibold">₹</span>
                 <input
                   type="number"
                   step="0.01"
@@ -288,7 +331,9 @@ const Transactions = () => {
                   onChange={(e) => setFormData({...formData, amount: e.target.value})}
                   className="input pl-10"
                   placeholder="0.00"
+                  autoFocus
                   required
+                  style={{ direction: 'ltr', textAlign: 'left', unicodeBidi: 'embed' }}
                 />
               </div>
             </div>
@@ -313,7 +358,7 @@ const Transactions = () => {
             <div>
               <label className="block text-sm font-medium text-primary mb-2">Date</label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted" />
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted pointer-events-none" />
                 <input
                   type="date"
                   value={formData.date}
@@ -328,11 +373,14 @@ const Transactions = () => {
             <div>
               <label className="block text-sm font-medium text-primary mb-2">Note (Optional)</label>
               <textarea
+                ref={noteRef}
                 value={formData.note}
-                onChange={(e) => setFormData({...formData, note: e.target.value})}
-                className="input"
+                onChange={handleNoteChange}
+                className="input text-ltr"
                 rows="3"
                 placeholder="Add a note..."
+                autoFocus={!formData.amount && !formData.category}
+                dir="ltr"
               />
             </div>
 
@@ -392,17 +440,28 @@ const Transactions = () => {
 
       {/* Filters */}
       <div className="card">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-primary">Filters</h3>
+          <button
+            onClick={clearFilters}
+            className="text-sm text-secondary hover:text-primary transition-colors"
+          >
+            Clear All Filters
+          </button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
           {/* Search */}
           <div className="lg:col-span-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted pointer-events-none" />
               <input
+                ref={searchRef}
                 type="text"
                 placeholder="Search transactions..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="input pl-10"
+                onChange={handleSearchChange}
+                className="input pl-10 text-ltr"
+                dir="ltr"
               />
             </div>
           </div>
@@ -435,21 +494,27 @@ const Transactions = () => {
           </div>
 
           {/* Date Range */}
-          <div className="flex gap-2">
-            <input
-              type="date"
-              placeholder="From"
-              value={filters.dateFrom}
-              onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
-              className="input"
-            />
-            <input
-              type="date"
-              placeholder="To"
-              value={filters.dateTo}
-              onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
-              className="input"
-            />
+          <div className="lg:col-span-2 grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs text-secondary mb-1">From Date</label>
+              <input
+                type="date"
+                value={filters.dateFrom}
+                onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
+                className="input text-ltr"
+                dir="ltr"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-secondary mb-1">To Date</label>
+              <input
+                type="date"
+                value={filters.dateTo}
+                onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
+                className="input text-ltr"
+                dir="ltr"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -463,7 +528,7 @@ const Transactions = () => {
         ) : (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-tertiary rounded-full flex items-center justify-center mx-auto mb-4">
-              <DollarSign className="w-8 h-8 text-muted" />
+              <span className="text-2xl text-muted font-bold">₹</span>
             </div>
             <h3 className="text-lg font-semibold text-primary mb-2">No transactions found</h3>
             <p className="text-secondary mb-4">

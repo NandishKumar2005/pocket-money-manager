@@ -8,7 +8,10 @@ import {
   Calendar,
   DollarSign,
   Filter,
-  Download
+  Download,
+  FileText,
+  FileSpreadsheet,
+  ChevronDown
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -33,10 +36,26 @@ const Analytics = () => {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('6months');
   const [selectedChart, setSelectedChart] = useState('trends');
+  const [exportStatus, setExportStatus] = useState('');
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
 
   useEffect(() => {
     fetchTransactions();
   }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showExportDropdown && !event.target.closest('.relative')) {
+        setShowExportDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showExportDropdown]);
 
   const fetchTransactions = async () => {
     try {
@@ -146,6 +165,296 @@ const Analytics = () => {
     .map(([category, amount]) => ({ name: category, value: amount }))
     .sort((a, b) => b.value - a.value);
 
+  // Export to CSV
+  const exportToCSV = () => {
+    setExportStatus('Generating CSV report...');
+    setShowExportDropdown(false);
+    const analyticsData = {
+      summary: {
+        timeRange,
+        totalIncome,
+        totalExpenses,
+        netIncome,
+        transactionCount: filteredTransactions.length,
+        generatedOn: new Date().toISOString()
+      },
+      monthlyTrends: chartData,
+      expenseCategories: pieData,
+      incomeCategories: incomePieData,
+      transactions: filteredTransactions.map(t => ({
+        date: t.date,
+        type: t.type,
+        category: t.category,
+        amount: t.amount,
+        note: t.note || ''
+      }))
+    };
+
+    // Create CSV content
+    let csvContent = "Analytics Report - Pocket Money Manager\n";
+    csvContent += `Generated on: ${new Date().toLocaleString()}\n`;
+    csvContent += `Time Range: ${timeRange}\n\n`;
+    
+    // Summary
+    csvContent += "SUMMARY\n";
+    csvContent += `Total Income,₹${totalIncome.toLocaleString()}\n`;
+    csvContent += `Total Expenses,₹${totalExpenses.toLocaleString()}\n`;
+    csvContent += `Net Income,₹${netIncome.toLocaleString()}\n`;
+    csvContent += `Total Transactions,${filteredTransactions.length}\n\n`;
+    
+    // Monthly Trends
+    csvContent += "MONTHLY TRENDS\n";
+    csvContent += "Month,Income,Expenses,Net\n";
+    chartData.forEach(month => {
+      csvContent += `${month.month},₹${month.income.toLocaleString()},₹${month.expense.toLocaleString()},₹${month.net.toLocaleString()}\n`;
+    });
+    csvContent += "\n";
+    
+    // Expense Categories
+    csvContent += "EXPENSE CATEGORIES\n";
+    csvContent += "Category,Amount,Percentage\n";
+    pieData.forEach(category => {
+      const percentage = ((category.value / totalExpenses) * 100).toFixed(1);
+      csvContent += `${category.name},₹${category.value.toLocaleString()},${percentage}%\n`;
+    });
+    csvContent += "\n";
+    
+    // Income Categories
+    csvContent += "INCOME CATEGORIES\n";
+    csvContent += "Category,Amount,Percentage\n";
+    incomePieData.forEach(category => {
+      const percentage = ((category.value / totalIncome) * 100).toFixed(1);
+      csvContent += `${category.name},₹${category.value.toLocaleString()},${percentage}%\n`;
+    });
+    csvContent += "\n";
+    
+    // All Transactions
+    csvContent += "ALL TRANSACTIONS\n";
+    csvContent += "Date,Type,Category,Amount,Note\n";
+    filteredTransactions
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .forEach(t => {
+        csvContent += `${new Date(t.date).toLocaleDateString()},${t.type},${t.category},₹${t.amount.toLocaleString()},"${t.note || ''}"\n`;
+      });
+
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `analytics-report-${timeRange}-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setExportStatus('CSV report exported successfully!');
+    setTimeout(() => setExportStatus(''), 3000);
+  };
+
+  // Export to Excel (XLSX format)
+  const exportToExcel = () => {
+    setExportStatus('Generating Excel report...');
+    setShowExportDropdown(false);
+
+    // Create Excel-compatible CSV with proper formatting
+    let excelContent = "Analytics Report - Pocket Money Manager\n";
+    excelContent += `Generated on,${new Date().toLocaleString()}\n`;
+    excelContent += `Time Range,${timeRange}\n\n`;
+    
+    // Summary Sheet
+    excelContent += "SUMMARY\n";
+    excelContent += "Metric,Amount\n";
+    excelContent += `Total Income,${totalIncome}\n`;
+    excelContent += `Total Expenses,${totalExpenses}\n`;
+    excelContent += `Net Income,${netIncome}\n`;
+    excelContent += `Total Transactions,${filteredTransactions.length}\n\n`;
+    
+    // Monthly Trends
+    excelContent += "MONTHLY TRENDS\n";
+    excelContent += "Month,Income,Expenses,Net\n";
+    chartData.forEach(month => {
+      excelContent += `${month.month},${month.income},${month.expense},${month.net}\n`;
+    });
+    excelContent += "\n";
+    
+    // Categories
+    excelContent += "EXPENSE CATEGORIES\n";
+    excelContent += "Category,Amount,Percentage\n";
+    pieData.forEach(category => {
+      const percentage = ((category.value / totalExpenses) * 100).toFixed(1);
+      excelContent += `${category.name},${category.value},${percentage}%\n`;
+    });
+    
+    const blob = new Blob([excelContent], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `analytics-report-${timeRange}-${new Date().toISOString().split('T')[0]}.xlsx`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setExportStatus('Excel report exported successfully!');
+    setTimeout(() => setExportStatus(''), 3000);
+  };
+
+  // Export to PDF (HTML to PDF)
+  const exportToPDF = () => {
+    setExportStatus('Generating PDF report...');
+    setShowExportDropdown(false);
+
+    // Create HTML content for PDF
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Analytics Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .section { margin-bottom: 25px; }
+          .section h2 { color: #3b82f6; border-bottom: 2px solid #3b82f6; padding-bottom: 5px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f8fafc; }
+          .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+          .stat-card { border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Analytics Report - Pocket Money Manager</h1>
+          <p>Generated on: ${new Date().toLocaleString()}</p>
+          <p>Time Range: ${timeRange}</p>
+        </div>
+        
+        <div class="section">
+          <h2>Summary</h2>
+          <div class="summary-grid">
+            <div class="stat-card">
+              <h3>Total Income</h3>
+              <p>₹${totalIncome.toLocaleString()}</p>
+            </div>
+            <div class="stat-card">
+              <h3>Total Expenses</h3>
+              <p>₹${totalExpenses.toLocaleString()}</p>
+            </div>
+            <div class="stat-card">
+              <h3>Net Income</h3>
+              <p>₹${netIncome.toLocaleString()}</p>
+            </div>
+            <div class="stat-card">
+              <h3>Total Transactions</h3>
+              <p>${filteredTransactions.length}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Monthly Trends</h2>
+          <table>
+            <thead>
+              <tr><th>Month</th><th>Income</th><th>Expenses</th><th>Net</th></tr>
+            </thead>
+            <tbody>
+              ${chartData.map(month => `
+                <tr>
+                  <td>${month.month}</td>
+                  <td>₹${month.income.toLocaleString()}</td>
+                  <td>₹${month.expense.toLocaleString()}</td>
+                  <td>₹${month.net.toLocaleString()}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section">
+          <h2>Expense Categories</h2>
+          <table>
+            <thead>
+              <tr><th>Category</th><th>Amount</th><th>Percentage</th></tr>
+            </thead>
+            <tbody>
+              ${pieData.map(category => {
+                const percentage = ((category.value / totalExpenses) * 100).toFixed(1);
+                return `
+                  <tr>
+                    <td>${category.name}</td>
+                    <td>₹${category.value.toLocaleString()}</td>
+                    <td>${percentage}%</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `analytics-report-${timeRange}-${new Date().toISOString().split('T')[0]}.html`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setExportStatus('PDF report exported successfully! (HTML format - can be converted to PDF)');
+    setTimeout(() => setExportStatus(''), 4000);
+  };
+
+  // Export to Word (RTF format)
+  const exportToWord = () => {
+    setExportStatus('Generating Word document...');
+    setShowExportDropdown(false);
+
+    // Create RTF content for Word
+    let rtfContent = `{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 Times New Roman;}}`;
+    rtfContent += `\\f0\\fs24 `;
+    rtfContent += `{\\b\\fs32 Analytics Report - Pocket Money Manager}\\par\\par`;
+    rtfContent += `Generated on: ${new Date().toLocaleString()}\\par`;
+    rtfContent += `Time Range: ${timeRange}\\par\\par`;
+    
+    rtfContent += `{\\b\\fs28 SUMMARY}\\par`;
+    rtfContent += `Total Income: ₹${totalIncome.toLocaleString()}\\par`;
+    rtfContent += `Total Expenses: ₹${totalExpenses.toLocaleString()}\\par`;
+    rtfContent += `Net Income: ₹${netIncome.toLocaleString()}\\par`;
+    rtfContent += `Total Transactions: ${filteredTransactions.length}\\par\\par`;
+    
+    rtfContent += `{\\b\\fs28 MONTHLY TRENDS}\\par`;
+    chartData.forEach(month => {
+      rtfContent += `${month.month}: Income ₹${month.income.toLocaleString()}, Expenses ₹${month.expense.toLocaleString()}, Net ₹${month.net.toLocaleString()}\\par`;
+    });
+    rtfContent += `\\par`;
+    
+    rtfContent += `{\\b\\fs28 EXPENSE CATEGORIES}\\par`;
+    pieData.forEach(category => {
+      const percentage = ((category.value / totalExpenses) * 100).toFixed(1);
+      rtfContent += `${category.name}: ₹${category.value.toLocaleString()} (${percentage}%)\\par`;
+    });
+    
+    rtfContent += `}`;
+
+    const blob = new Blob([rtfContent], { type: 'application/rtf' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `analytics-report-${timeRange}-${new Date().toISOString().split('T')[0]}.rtf`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setExportStatus('Word document exported successfully!');
+    setTimeout(() => setExportStatus(''), 3000);
+  };
+
   const COLORS = [
     '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', 
     '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1'
@@ -166,7 +475,7 @@ const Analytics = () => {
         )}
       </div>
       <h3 className="text-sm font-medium text-secondary mb-1">{title}</h3>
-      <p className="text-2xl font-bold text-primary">${value.toLocaleString()}</p>
+      <p className="text-2xl font-bold text-primary">₹{value.toLocaleString()}</p>
     </div>
   );
 
@@ -207,12 +516,65 @@ const Analytics = () => {
             <option value="6months">Last 6 Months</option>
             <option value="1year">Last Year</option>
           </select>
-          <button className="btn btn-secondary">
-            <Download className="w-4 h-4" />
-            Export
-          </button>
+          <div className="relative">
+            <button 
+              onClick={() => setShowExportDropdown(!showExportDropdown)}
+              className="btn btn-secondary"
+              disabled={exportStatus.includes('Generating')}
+            >
+              <Download className="w-4 h-4" />
+              {exportStatus.includes('Generating') ? 'Exporting...' : 'Export'}
+              <ChevronDown className="w-4 h-4 ml-1" />
+            </button>
+            
+            {showExportDropdown && (
+              <div className="absolute right-0 mt-2 w-48 bg-secondary border border-color rounded-lg shadow-lg z-50">
+                <div className="py-1">
+                  <button
+                    onClick={exportToCSV}
+                    className="flex items-center gap-2 w-full px-4 py-2 text-sm text-primary hover:bg-tertiary transition-colors"
+                  >
+                    <FileSpreadsheet className="w-4 h-4" />
+                    Export as CSV
+                  </button>
+                  <button
+                    onClick={exportToExcel}
+                    className="flex items-center gap-2 w-full px-4 py-2 text-sm text-primary hover:bg-tertiary transition-colors"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-accent-success" />
+                    Export as Excel
+                  </button>
+                  <button
+                    onClick={exportToPDF}
+                    className="flex items-center gap-2 w-full px-4 py-2 text-sm text-primary hover:bg-tertiary transition-colors"
+                  >
+                    <FileText className="w-4 h-4 text-accent-danger" />
+                    Export as PDF
+                  </button>
+                  <button
+                    onClick={exportToWord}
+                    className="flex items-center gap-2 w-full px-4 py-2 text-sm text-primary hover:bg-tertiary transition-colors"
+                  >
+                    <FileText className="w-4 h-4 text-accent-primary" />
+                    Export as Word
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Export Status Notification */}
+      {exportStatus && (
+        <div className={`p-3 rounded-lg text-sm font-medium ${
+          exportStatus.includes('success') 
+            ? 'bg-accent-success bg-opacity-10 text-accent-success border border-accent-success border-opacity-20' 
+            : 'bg-accent-primary bg-opacity-10 text-accent-primary border border-accent-primary border-opacity-20'
+        }`}>
+          {exportStatus}
+        </div>
+      )}
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

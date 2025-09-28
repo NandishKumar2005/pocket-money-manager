@@ -52,6 +52,17 @@
   box-sizing: border-box;
 }
 
+/* Force left-to-right text direction globally */
+html {
+  direction: ltr;
+}
+
+body {
+  direction: ltr;
+}
+
+/* Clean LTR override - remove all conflicting rules */
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
@@ -169,6 +180,8 @@ body {
   color: var(--text-primary);
   font-size: 0.875rem;
   transition: all 0.2s ease;
+  direction: ltr;
+  text-align: left;
 }
 
 /* Override for inputs with icons */
@@ -196,6 +209,58 @@ body {
 
 .input::placeholder {
   color: var(--text-muted);
+}
+
+/* Simple and clean text direction fix */
+.text-ltr {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Force LTR for all form inputs to prevent text reversal */
+input[type="text"],
+input[type="search"], 
+textarea {
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: plaintext;
+}
+
+/* Specific fix for the note textarea and search input */
+textarea.text-ltr,
+input.text-ltr {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: normal !important;
+  writing-mode: horizontal-tb !important;
+  -webkit-writing-mode: horizontal-tb !important;
+  -ms-writing-mode: lr-tb !important;
+  text-orientation: mixed !important;
+}
+
+/* Date input specific styling */
+input[type="date"].text-ltr {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: normal !important;
+  min-width: 140px;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
+
+/* Ensure date inputs show full year */
+input[type="date"] {
+  min-width: 140px;
+  width: 100%;
+}
+
+/* Prevent any bidirectional text processing */
+textarea.text-ltr *,
+input.text-ltr * {
+  direction: ltr !important;
+  unicode-bidi: normal !important;
 }
 
 /* Animations */
@@ -379,6 +444,9 @@ body {
 .duration-300 { transition-duration: 300ms; }
 
 .ease-in-out { transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+ 
+/* Pointer events utility */
+.pointer-events-none { pointer-events: none; }
 
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -413,6 +481,7 @@ body {
 .lg\:translate-x-0 { --tw-translate-x: 0px; }
 .lg\:col-span-2 { grid-column: span 2 / span 2; }
 .lg\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.lg\:grid-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 
 @media (min-width: 1024px) {
   .lg\:hidden { display: none; }
@@ -420,6 +489,7 @@ body {
   .lg\:translate-x-0 { --tw-translate-x: 0px; }
   .lg\:col-span-2 { grid-column: span 2 / span 2; }
   .lg\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .lg\:grid-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 }
 
 /* Additional utilities */

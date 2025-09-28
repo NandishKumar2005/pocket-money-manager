@@ -104,7 +104,7 @@ const Dashboard = () => {
         )}
       </div>
       <h3 className="text-sm font-medium text-secondary mb-1">{title}</h3>
-      <p className="text-2xl font-bold text-primary">${value.toLocaleString()}</p>
+      <p className="text-2xl font-bold text-primary">₹{value.toLocaleString()}</p>
     </div>
   );
 
@@ -131,7 +131,7 @@ const Dashboard = () => {
         <p className={`font-semibold ${
           transaction.type === 'income' ? 'text-accent-success' : 'text-accent-danger'
         }`}>
-          {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toLocaleString()}
+          {transaction.type === 'income' ? '+' : '-'}₹{transaction.amount.toLocaleString()}
         </p>
         <p className="text-xs text-muted">
           {new Date(transaction.date).toLocaleDateString()}
