@@ -36,23 +36,30 @@ const Transactions = () => {
     note: ''
   });
 
-  // Refs for text inputs to control cursor position
+  // Refs for text inputs
   const noteRef = useRef(null);
   const searchRef = useRef(null);
+  const amountRef = useRef(null);
 
-  // Handle text input to prevent cursor jumping
+  // Handle note input change with cursor position preservation
   const handleNoteChange = (e) => {
-    const value = e.target.value;
+    const { value } = e.target;
     const cursorPosition = e.target.selectionStart;
-    
-    setFormData(prev => ({...prev, note: value}));
-    
-    // Use requestAnimationFrame for better timing
-    requestAnimationFrame(() => {
+
+    setFormData(prev => ({
+      ...prev,
+      note: value
+    }));
+
+    // Preserve cursor position and ensure focus is maintained
+    setTimeout(() => {
       if (noteRef.current) {
-        noteRef.current.setSelectionRange(cursorPosition, cursorPosition);
+        noteRef.current.focus();
+        // Ensure cursor is visible by setting selection range after focus
+        const newPosition = Math.min(cursorPosition, value.length);
+        noteRef.current.setSelectionRange(newPosition, newPosition);
       }
-    });
+    }, 0);
   };
 
   const handleSearchChange = (e) => {
@@ -295,7 +302,7 @@ const Transactions = () => {
               <div className="flex bg-tertiary rounded-lg p-1">
                 <button
                   type="button"
-                  onClick={() => setFormData({...formData, type: 'expense'})}
+                  onClick={() => setFormData(prev => ({...prev, type: 'expense'}))}
                   className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                     formData.type === 'expense'
                       ? 'bg-accent-danger text-white'
@@ -306,7 +313,7 @@ const Transactions = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setFormData({...formData, type: 'income'})}
+                  onClick={() => setFormData(prev => ({...prev, type: 'income'}))}
                   className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                     formData.type === 'income'
                       ? 'bg-accent-success text-white'
@@ -328,10 +335,15 @@ const Transactions = () => {
                   step="0.01"
                   min="0"
                   value={formData.amount}
-                  onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                  onChange={(e) => {
+                    const { value } = e.target;
+                    setFormData(prev => ({
+                      ...prev,
+                      amount: value
+                    }));
+                  }}
                   className="input pl-10"
                   placeholder="0.00"
-                  autoFocus
                   required
                   style={{ direction: 'ltr', textAlign: 'left', unicodeBidi: 'embed' }}
                 />
@@ -343,7 +355,13 @@ const Transactions = () => {
               <label className="block text-sm font-medium text-primary mb-2">Category</label>
               <select
                 value={formData.category}
-                onChange={(e) => setFormData({...formData, category: e.target.value})}
+                  onChange={(e) => {
+                    const { value } = e.target;
+                    setFormData(prev => ({
+                      ...prev,
+                      category: value
+                    }));
+                  }}
                 className="input"
                 required
               >
@@ -362,7 +380,13 @@ const Transactions = () => {
                 <input
                   type="date"
                   value={formData.date}
-                  onChange={(e) => setFormData({...formData, date: e.target.value})}
+                  onChange={(e) => {
+                    const { value } = e.target;
+                    setFormData(prev => ({
+                      ...prev,
+                      date: value
+                    }));
+                  }}
                   className="input pl-10"
                   required
                 />
@@ -379,8 +403,9 @@ const Transactions = () => {
                 className="input text-ltr"
                 rows="3"
                 placeholder="Add a note..."
-                autoFocus={!formData.amount && !formData.category}
                 dir="ltr"
+                spellCheck="false"
+                autoComplete="off"
               />
             </div>
 

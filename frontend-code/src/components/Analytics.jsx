@@ -460,7 +460,7 @@ const Analytics = () => {
     '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1'
   ];
 
-  const StatCard = ({ title, value, icon: Icon, trend, color = 'accent-primary' }) => (
+  const StatCard = ({ title, value, icon: Icon, trend, color = 'accent-primary', showCurrency = true }) => (
     <div className="card hover:shadow-lg transition-all duration-300">
       <div className="flex items-center justify-between mb-4">
         <div className={`p-3 rounded-lg bg-${color} bg-opacity-10`}>
@@ -475,7 +475,9 @@ const Analytics = () => {
         )}
       </div>
       <h3 className="text-sm font-medium text-secondary mb-1">{title}</h3>
-      <p className="text-2xl font-bold text-primary">₹{value.toLocaleString()}</p>
+      <p className="text-2xl font-bold text-primary">
+        {showCurrency ? `₹${value.toLocaleString()}` : value.toLocaleString()}
+      </p>
     </div>
   );
 
@@ -601,6 +603,7 @@ const Analytics = () => {
           value={filteredTransactions.length}
           icon={BarChart3}
           color="accent-secondary"
+          showCurrency={false}
         />
       </div>
 
@@ -813,7 +816,7 @@ const Analytics = () => {
                   <span className="text-primary font-medium">{item.name}</span>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-primary">${item.value.toLocaleString()}</p>
+                  <p className="font-semibold text-primary">₹{item.value.toLocaleString()}</p>
                   <p className="text-sm text-secondary">
                     {((item.value / totalExpenses) * 100).toFixed(1)}%
                   </p>
@@ -835,7 +838,7 @@ const Analytics = () => {
                   <span className="text-primary font-medium">{item.name}</span>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-primary">${item.value.toLocaleString()}</p>
+                  <p className="font-semibold text-primary">₹{item.value.toLocaleString()}</p>
                   <p className="text-sm text-secondary">
                     {totalIncome > 0 ? ((item.value / totalIncome) * 100).toFixed(1) : 0}%
                   </p>
