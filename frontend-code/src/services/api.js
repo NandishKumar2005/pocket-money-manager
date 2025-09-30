@@ -3,10 +3,11 @@ import axios from 'axios';
 // API Base URL - use environment variable for production, localhost for development
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
-console.log('API Configuration:', {
+console.log('🔧 API Configuration:', {
   hostname: window.location.hostname,
   API_BASE_URL,
-  currentLocation: window.location.href
+  currentLocation: window.location.href,
+  environment: import.meta.env.MODE
 });
 
 // Test API connectivity on load
