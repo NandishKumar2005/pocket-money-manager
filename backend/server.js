@@ -37,8 +37,35 @@ if (process.env.FRONTEND_URL) {
   console.log('Added FRONTEND_URL to CORS origins:', process.env.FRONTEND_URL);
 }
 
-app.use(cors({
-  origin: true, // Temporarily allow all origins for debugging
+// Also allow common Vercel preview deployments
+allowedOrigins.push(
+  /^https:\/\/.*\.vercel\.app$/,
+  /^https:\/\/.*-vercel-app\.vercel\.app$/
+);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    // Check if origin matches any of the allowed patterns
+    const isAllowed = allowedOrigins.some(allowedOrigin => {
+      if (typeof allowedOrigin === 'string') {
+        return allowedOrigin === origin;
+      } else if (allowedOrigin instanceof RegExp) {
+        return allowedOrigin.test(origin);
+      }
+      return false;
+    });
+
+    if (isAllowed) {
+      console.log(`CORS: Allowing origin: ${origin}`);
+      callback(null, true);
+    } else {
+      console.log(`CORS: Blocking origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
     'Origin',
@@ -50,27 +77,10 @@ app.use(cors({
     'Pragma'
   ],
   credentials: true,
-  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
-}))
+  optionsSuccessStatus: 200
+};
 
-// Additional CORS headers for preflight requests
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  console.log(`CORS Request: ${req.method} ${req.url} from origin: ${origin}`);
-  
-  res.header('Access-Control-Allow-Origin', origin);
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma');
-  
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    console.log(`Preflight request handled for ${req.url}`);
-    res.sendStatus(200);
-  } else {
-    next();
-  }
-})
+app.use(cors(corsOptions));
 
 // built-in middleware to parse JSON bodies
 app.use(express.json())
