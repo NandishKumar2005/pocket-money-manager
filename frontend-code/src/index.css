@@ -132,8 +132,12 @@ body {
 
 .btn-primary:hover:not(:disabled) {
   background: #2563eb;
-  transform: translateY(-1px);
+  transform: translateY(-2px) scale(1.02);
   box-shadow: var(--shadow-md);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
 }
 
 .btn-secondary {
@@ -144,7 +148,12 @@ body {
 
 .btn-secondary:hover:not(:disabled) {
   background: var(--border-color);
-  transform: translateY(-1px);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
 }
 
 .btn-success {
@@ -232,9 +241,9 @@ input.text-ltr {
   direction: ltr !important;
   text-align: left !important;
   unicode-bidi: normal !important;
-  writing-mode: horizontal-tb !important;
   -webkit-writing-mode: horizontal-tb !important;
   -ms-writing-mode: lr-tb !important;
+  writing-mode: horizontal-tb !important;
   text-orientation: mixed !important;
 }
 

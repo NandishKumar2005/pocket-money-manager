@@ -204,12 +204,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - Icons by [Lucide](https://lucide.dev/)
 - Charts by [Recharts](https://recharts.org/)
-- UI inspiration from modern design systems
 
-## 📞 Support
 
-For support, email support@pocketmoney.com or create an issue in the repository.
 
----
 
 **Made with ❤️ for better financial management**

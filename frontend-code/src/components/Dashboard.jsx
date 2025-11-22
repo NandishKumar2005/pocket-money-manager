@@ -14,14 +14,16 @@ import {
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
 const Dashboard = () => {
+  console.log('Dashboard component rendering');
   const { user } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (!user) return;
     fetchTransactions();
-  }, []);
+  }, [user]);
 
   const fetchTransactions = async () => {
     try {
@@ -88,7 +90,7 @@ const Dashboard = () => {
 
   const COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4'];
 
-  const StatCard = ({ title, value, icon: Icon, trend, trendValue, color = 'accent-primary' }) => (
+  const StatCard = ({ title, value, icon: Icon, trend, trendValue, color = 'accent-primary', showCurrency = true }) => (
     <div className="card hover:shadow-lg transition-all duration-300">
       <div className="flex items-center justify-between mb-4">
         <div className={`p-3 rounded-lg bg-${color} bg-opacity-10`}>
@@ -104,7 +106,9 @@ const Dashboard = () => {
         )}
       </div>
       <h3 className="text-sm font-medium text-secondary mb-1">{title}</h3>
-      <p className="text-2xl font-bold text-primary">₹{value.toLocaleString()}</p>
+      <p className="text-2xl font-bold text-primary">
+        {showCurrency ? `₹${value.toLocaleString()}` : value.toLocaleString()}
+      </p>
     </div>
   );
 
@@ -140,6 +144,14 @@ const Dashboard = () => {
     </div>
   );
 
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-gray-600 dark:text-gray-300">Please log in to view dashboard.</p>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -152,7 +164,12 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" key="dashboard-content">
+      {error && (
+        <div className="bg-red-100 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -199,6 +216,7 @@ const Dashboard = () => {
           value={transactions.length}
           icon={CreditCard}
           color="accent-secondary"
+          showCurrency={false}
         />
       </div>
 

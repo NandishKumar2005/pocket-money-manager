@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-const ThemeContext = createContext();
+export const ThemeContext = createContext();
 
 export const useTheme = () => {
   const context = useContext(ThemeContext);
@@ -12,15 +12,36 @@ export const useTheme = () => {
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
-    const savedTheme = localStorage.getItem('pocket-money-theme');
-    return savedTheme || 'light';
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('pocket-money-theme');
+      const initialTheme = savedTheme || 'light';
+      
+      // Apply theme immediately on initialization
+      document.documentElement.setAttribute('data-theme', initialTheme);
+      if (initialTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      
+      return initialTheme;
+    }
+    return 'light';
   });
 
+  // Update theme when it changes
   useEffect(() => {
-    localStorage.setItem('pocket-money-theme', theme);
-    document.documentElement.setAttribute('data-theme', theme);
-    // Force a re-render by updating the root element
-    document.documentElement.className = theme;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pocket-money-theme', theme);
+      document.documentElement.setAttribute('data-theme', theme);
+      
+      // Apply dark class for Tailwind dark mode
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
   }, [theme]);
 
   const toggleTheme = () => {

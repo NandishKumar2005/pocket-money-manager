@@ -178,7 +178,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full btn btn-primary btn-lg"
+              className="w-full btn btn-primary btn-lg transform transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-lg disabled:transform-none"
             >
               {loading ? (
                 <div className="flex items-center justify-center gap-2">
