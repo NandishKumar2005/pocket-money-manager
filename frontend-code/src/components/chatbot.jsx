@@ -104,7 +104,7 @@ export default function Chatbot() {
       return "I'm sorry, but the Gemini API key is not configured. Please add your API key to the .env file as VITE_GEMINI_API_KEY. You can get a free API key from https://aistudio.google.com/app/apikey";
     }
     
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
     // Convert message history to Gemini format
     const contents = [
