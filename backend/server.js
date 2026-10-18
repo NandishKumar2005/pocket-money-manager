@@ -6,6 +6,7 @@ const path = require('path')
 const connectDB = require('./config/db')
 const userRoutes = require('./routes/userRoutes')
 const transactionRoutes = require('./routes/transactionRoutes')
+const aiRoutes = require('./routes/aiRoutes')
 const { errorHandler } = require('./middleware/errorMiddleware')
 
 dotenv.config({ path: path.join(__dirname, '.env'), override: true })
@@ -93,6 +94,7 @@ app.get('/', (req, res) => {
 // mount routers
 app.use('/api/users', userRoutes)
 app.use('/api/transactions', transactionRoutes)
+app.use('/api/ai', aiRoutes)
 
 // custom error handler (catches exceptions & 404s)
 app.use(errorHandler)

@@ -54,18 +54,6 @@ const SendIcon = () => (
   </svg>
 );
 
-// System prompt for the Gemini API
-const systemPrompt = `You are PocketPal, a friendly and helpful AI assistant for the "Pocket Money Manager" web app.
-Your role is to answer user questions about their finances and how to use the app.
-The app has three main sections:
-1.  **Dashboard**: Shows current balance, total income vs. expenses, and a list of recent transactions.
-2.  **Transactions**: Allows users to add new income or expense transactions (with a description, amount, type, and category). It also shows a complete history of all transactions, which can be edited or deleted.
-3.  **Analytics**: Displays a pie chart visualizing spending habits by category.
-
-Keep your answers concise, friendly, and focused on helping the user manage their money within this app.
-If the user asks something unrelated to finance or the app, gently guide them back on topic.
-Do not make up features that don't exist.`;
-
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
@@ -76,97 +64,44 @@ export default function Chatbot() {
     },
   ]);
   const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false); // For typing indicator
+  const [isLoading, setIsLoading] = useState(false);
   const themeContext = useContext(ThemeContext);
   const theme = themeContext?.theme || 'light';
   const chatEndRef = useRef(null);
 
-  // Scroll to bottom of messages when new message is added
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const toggleChat = () => {
-    setIsOpen(!isOpen);
-  };
+  const toggleChat = () => setIsOpen(!isOpen);
+  const handleInputChange = (e) => setInputValue(e.target.value);
 
-  const handleInputChange = (e) => {
-    setInputValue(e.target.value);
-  };
-
-  // --- API Call to Gemini ---
-  const getGeminiResponse = async (userMessage, chatHistory) => {
+  // --- API Call to backend proxy ---
+  const getBotResponse = async (userMessage, chatHistory) => {
     setIsLoading(true);
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-    
-    if (!apiKey) {
-      setIsLoading(false);
-      return "I'm sorry, but the Gemini API key is not configured. Please add your API key to the .env file as VITE_GEMINI_API_KEY. You can get a free API key from https://aistudio.google.com/app/apikey";
-    }
-    
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-    // Convert message history to Gemini format
-    const contents = [
-      ...chatHistory.map((msg) => ({
-        role: msg.sender === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.text }],
-      })),
-      {
-        role: 'user',
-        parts: [{ text: userMessage }],
-      },
-    ];
-
-    const payload = {
-      contents: contents,
-      systemInstruction: {
-        parts: [{ text: systemPrompt }],
-      },
-    };
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+    const token = localStorage.getItem('pocket-money-token');
 
     try {
-      // Add exponential backoff for retries
-      let response;
-      let retries = 3;
-      let delay = 1000;
-      for (let i = 0; i < retries; i++) {
-        response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        if (response.ok) {
-          break; // Success
-        }
-        if (response.status === 429 || response.status >= 500) {
-          // Retry on rate limit or server error
-          await new Promise((resolve) => setTimeout(resolve, delay));
-          delay *= 2; // Exponential backoff
-        } else {
-          break; // Don't retry on other errors (e.g., 400)
-        }
-      }
+      const response = await fetch(`${baseUrl}/ai/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ message: userMessage, history: chatHistory }),
+      });
 
       if (!response.ok) {
-        console.error(
-          'Gemini API Error:',
-          response.status,
-          await response.text()
-        );
-        return "I'm sorry, I'm having a little trouble connecting right now. Please try again in a moment.";
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || 'Server error');
       }
 
-      const result = await response.json();
-      const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-
-      if (!text) {
-        return "I'm not sure how to respond to that. Could you try rephrasing?";
-      }
-      return text;
+      const data = await response.json();
+      return data.reply;
     } catch (error) {
-      console.error('Error fetching from Gemini API:', error);
-      return "I'm sorry, I couldn't connect to my brain. Please check your connection and try again.";
+      console.error('Chat error:', error);
+      return "I'm having trouble connecting right now. Please try again in a moment.";
     } finally {
       setIsLoading(false);
     }
@@ -189,8 +124,8 @@ export default function Chatbot() {
     const currentChatHistory = [...messages];
     setMessages((prevMessages) => [...prevMessages, userMessage]);
 
-    // Get and add bot response from Gemini
-    const botResponseText = await getGeminiResponse(
+    // Get and add bot response from backend
+    const botResponseText = await getBotResponse(
       userMessageText,
       currentChatHistory
     );

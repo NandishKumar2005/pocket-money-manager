@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { transactionsAPI } from '../services/api';
+import AIAdvisor from './AIAdvisor';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -315,6 +316,9 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+
+      {/* AI Investment Advisor */}
+      <AIAdvisor />
     </div>
   );
 };
