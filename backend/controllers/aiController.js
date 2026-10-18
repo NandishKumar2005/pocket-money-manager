@@ -2,7 +2,7 @@ const asyncHandler = require('express-async-handler')
 const Transaction = require('../models/Transaction')
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
-const AI_MODEL = 'meta-llama/llama-3.1-8b-instruct:free'
+const AI_MODEL = 'mistralai/mistral-7b-instruct:free'
 
 const callAI = async (systemPrompt, messages) => {
   const apiKey = process.env.OPENROUTER_API_KEY

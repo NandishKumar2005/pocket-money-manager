@@ -1021,101 +1021,35 @@ const Analytics = () => {
     };
   }, []);
 
-  // --- Gemini API Call ---
+  // --- AI Spending Analysis via backend ---
   const handleGetAnalysis = async () => {
     setIsAnalyzing(true);
     setAnalysis('');
 
     if (expenseTransactions.length === 0) {
-      setAnalysis(
-        "You don't have any expense data to analyze yet. Try adding some transactions!"
-      );
+      setAnalysis("You don't have any expense data to analyze yet. Try adding some transactions!");
       setIsAnalyzing(false);
       return;
     }
 
-    // Format the data for the prompt
-    const expenseData = expenseTransactions
-      .map(
-        (t) =>
-          `- ${t.description} (Category: ${t.category}): ${formatCurrency(
-            t.amount
-          )}`
-      )
-      .join('\n');
-
-    const systemPrompt =
-      "You are a friendly, encouraging financial advisor for a user of a 'Pocket Money Manager' app. Your goal is to provide a very short, simple, and actionable analysis based on their spending data. Speak directly to the user.";
-    const userQuery = `Here is my recent spending:\n${expenseData}\n\nBased on this, please give me a 2-3 sentence analysis of my spending habits and one actionable tip to help me save money. Be friendly and positive!`;
-
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-    
-    if (!apiKey) {
-      setIsAnalyzing(false);
-      setAnalysis("I'm sorry, but the Gemini API key is not configured. Please add your API key to the .env file as VITE_GEMINI_API_KEY. You can get a free API key from https://aistudio.google.com/app/apikey");
-      return;
-    }
-    
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-    const payload = {
-      contents: [{ parts: [{ text: userQuery }] }],
-      systemInstruction: {
-        parts: [{ text: systemPrompt }],
-      },
-    };
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+    const token = localStorage.getItem('pocket-money-token');
 
     try {
-      // Add exponential backoff for retries
-      let response;
-      let retries = 3;
-      let delay = 1000;
-      for (let i = 0; i < retries; i++) {
-        response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        if (response.ok) {
-          break; // Success
-        }
-        if (response.status === 429 || response.status >= 500) {
-          // Retry on rate limit or server error
-          await new Promise((resolve) => setTimeout(resolve, delay));
-          delay *= 2; // Exponential backoff
-        } else {
-          break; // Don't retry
-        }
-      }
+      const response = await fetch(`${baseUrl}/ai/analyze`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       if (!response.ok) {
-        console.error(
-          'Gemini API Error:',
-          response.status,
-          await response.text()
-        );
-        setAnalysis(
-          "Sorry, I couldn't generate an analysis right now. Please try again later."
-        );
-        setIsAnalyzing(false);
-        return;
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || `Error ${response.status}`);
       }
 
-      const result = await response.json();
-      const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-
-      if (text) {
-        setAnalysis(text);
-      } else {
-        setAnalysis(
-          "Sorry, I couldn't generate an analysis. No response from AI."
-        );
-      }
+      const data = await response.json();
+      setAnalysis(data.analysis);
     } catch (error) {
-      console.error('Error fetching from Gemini API:', error);
-      setAnalysis(
-        'An error occurred while analyzing your spending. Please check your connection.'
-      );
+      console.error('Analysis error:', error);
+      setAnalysis('An error occurred while analyzing your spending. Please check your connection.');
     } finally {
       setIsAnalyzing(false);
     }
