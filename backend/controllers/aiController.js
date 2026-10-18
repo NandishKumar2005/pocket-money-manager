@@ -2,49 +2,62 @@ const asyncHandler = require('express-async-handler')
 const Transaction = require('../models/Transaction')
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
-const AI_MODEL = 'mistralai/mistral-7b-instruct:free'
+
+// Free models in priority order - if one fails, tries the next
+const FREE_MODELS = [
+  'nvidia/nemotron-3.5-super-vl:free',
+  'nvidia/nemotron-3.5-lightning:free',
+  'liquid/lfm-2.5-2.6b:free',
+]
 
 const callAI = async (systemPrompt, messages) => {
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) throw new Error('OPENROUTER_API_KEY not configured on server')
 
   const payload = {
-    model: AI_MODEL,
     messages: [
       { role: 'system', content: systemPrompt },
       ...messages,
     ],
   }
 
-  let response
-  let delay = 1000
-  for (let i = 0; i < 3; i++) {
-    response = await fetch(OPENROUTER_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': 'http://localhost:5173',
-        'X-Title': 'Pocket Money Manager',
-      },
-      body: JSON.stringify(payload),
-    })
-    if (response.ok) break
-    if (response.status === 429 || response.status >= 500) {
-      await new Promise((r) => setTimeout(r, delay))
-      delay *= 2
-    } else break
+  let lastError = ''
+
+  for (const model of FREE_MODELS) {
+    let response
+    let delay = 1000
+
+    for (let i = 0; i < 2; i++) {
+      response = await fetch(OPENROUTER_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+          'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:5173',
+          'X-Title': 'Pocket Money Manager',
+        },
+        body: JSON.stringify({ ...payload, model }),
+      })
+
+      if (response.ok) break
+      if (response.status === 429 || response.status >= 500) {
+        await new Promise((r) => setTimeout(r, delay))
+        delay *= 2
+      } else break
+    }
+
+    if (response.ok) {
+      const result = await response.json()
+      const text = result.choices?.[0]?.message?.content
+      if (text) return text
+    }
+
+    const errText = await response.text().catch(() => '')
+    lastError = `${model} failed (${response.status}): ${errText}`
+    console.warn(lastError)
   }
 
-  if (!response.ok) {
-    const errText = await response.text()
-    throw new Error(`AI API error ${response.status}: ${errText}`)
-  }
-
-  const result = await response.json()
-  const text = result.choices?.[0]?.message?.content
-  if (!text) throw new Error('Empty response from AI')
-  return text
+  throw new Error(`All AI models failed. Last error: ${lastError}`)
 }
 
 const chatSystemPrompt = `You are PocketPal, a friendly AI assistant for the "Pocket Money Manager" web app.
@@ -82,18 +95,28 @@ const chat = asyncHandler(async (req, res) => {
 // @route GET /api/ai/analyze
 // @access Private
 const analyze = asyncHandler(async (req, res) => {
-  const transactions = await Transaction.find({ user: req.user._id }).sort({ date: -1 }).limit(100)
+  const transactions = await Transaction.find({ user: req.user._id })
+    .sort({ date: -1 })
+    .limit(100)
 
   if (!transactions.length) {
     return res.json({
-      analysis: "You don't have any transactions yet. Start adding your income and expenses to get personalised investment advice!",
+      analysis:
+        "You don't have any transactions yet. Start adding your income and expenses to get personalised investment advice!",
     })
   }
 
-  const totalIncome = transactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
-  const totalExpenses = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const totalIncome = transactions
+    .filter((t) => t.type === 'income')
+    .reduce((s, t) => s + t.amount, 0)
+  const totalExpenses = transactions
+    .filter((t) => t.type === 'expense')
+    .reduce((s, t) => s + t.amount, 0)
   const balance = totalIncome - totalExpenses
-  const savingsRate = totalIncome > 0 ? (((totalIncome - totalExpenses) / totalIncome) * 100).toFixed(1) : 0
+  const savingsRate =
+    totalIncome > 0
+      ? (((totalIncome - totalExpenses) / totalIncome) * 100).toFixed(1)
+      : 0
 
   const expenseByCategory = transactions
     .filter((t) => t.type === 'expense')
@@ -109,26 +132,24 @@ const analyze = asyncHandler(async (req, res) => {
       return acc
     }, {})
 
-  const summary = `
-User Financial Summary:
-- Total Income: ₹${totalIncome.toLocaleString()}
-- Total Expenses: ₹${totalExpenses.toLocaleString()}
-- Current Balance: ₹${balance.toLocaleString()}
+  const summary = `User Financial Summary:
+- Total Income: Rs.${totalIncome.toLocaleString()}
+- Total Expenses: Rs.${totalExpenses.toLocaleString()}
+- Current Balance: Rs.${balance.toLocaleString()}
 - Savings Rate: ${savingsRate}%
 - Expense Breakdown: ${JSON.stringify(expenseByCategory)}
 - Income Sources: ${JSON.stringify(incomeByCategory)}
-- Total Transactions Analyzed: ${transactions.length}
-`
+- Total Transactions Analyzed: ${transactions.length}`
 
-  const analysisPrompt = `You are a friendly personal finance and investment advisor AI.
+  const analysisPrompt = `You are a friendly personal finance and investment advisor AI for Indian users.
 Analyze the following financial data and provide:
 1. A brief assessment of the user's financial health (2-3 sentences)
-2. Top 3 specific, actionable investment suggestions based on their savings rate and spending patterns
-3. One key area where they could reduce spending to invest more
-4. A simple investment allocation suggestion (e.g., % in FD, mutual funds, stocks, emergency fund)
+2. Top 3 specific actionable investment suggestions based on their savings rate
+3. One key area to reduce spending
+4. A simple investment allocation (% in FD, SIP mutual funds, stocks, emergency fund)
 
-Keep the tone encouraging and practical. Use Indian financial context (₹, FDs, SIPs, mutual funds).
-Format the response with clear sections using emojis for readability.`
+Be encouraging and practical. Use Indian context (Rs., FDs, SIPs, mutual funds).
+Use emojis for each section heading.`
 
   const messages = [{ role: 'user', content: summary }]
   const analysis = await callAI(analysisPrompt, messages)
