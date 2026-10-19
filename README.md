@@ -4,7 +4,7 @@ A comprehensive personal finance management application built with React.js and 
 
 ![Pocket Money Manager](https://img.shields.io/badge/React-19.1.1-blue) ![Node.js](https://img.shields.io/badge/Node.js-Express-green) ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-green) ![Vite](https://img.shields.io/badge/Vite-7.1.7-purple)
 
-## ✨ Features
+### ✨ Features
 
 ### 🎨 Modern UI/UX
 - **Dark & Light Mode**: Seamless theme switching with beautiful color palettes
@@ -16,25 +16,29 @@ A comprehensive personal finance management application built with React.js and 
 - **Financial Overview**: Real-time balance, income, and expense summaries
 - **Interactive Charts**: Visual representation of monthly trends and category breakdowns
 - **Recent Transactions**: Quick access to your latest financial activities
-- **Welcome Personalization**: Personalized greeting with user's name
+- **AI Investment Advisor**: Personalized investment suggestions based on your transactions
 
 ### 💳 Transaction Management
 - **Add/Edit/Delete**: Full CRUD operations for transactions
 - **Smart Filtering**: Filter by date range, type, and category
 - **Search Functionality**: Find transactions quickly with real-time search
 - **Category Management**: Predefined categories for better organization
-- **Modal Forms**: Clean, user-friendly forms for data entry
 
 ### 📈 Analytics & Reports
 - **Multiple Chart Types**: Line charts, bar charts, pie charts, and area charts
 - **Time Range Selection**: Analyze data over different periods
 - **Category Breakdown**: Detailed spending analysis by category
-- **Income vs Expenses**: Visual comparison of financial flows
-- **Export Functionality**: Download reports for external use
+- **AI Spending Analysis**: AI-powered insights on your spending patterns
+- **Export Functionality**: Download reports as PDF, CSV, Excel, Word
+
+### 🤖 AI Features (Powered by OpenRouter)
+- **PocketPal Chatbot**: Ask questions about the app and personal finance
+- **AI Investment Advisor**: Get personalized investment advice based on your data
+- **AI Spending Analysis**: Understand your spending habits with AI insights
 
 ### 🔐 Authentication & Security
 - **User Registration & Login**: Secure authentication system
-- **JWT Tokens**: Stateless authentication with automatic token refresh
+- **JWT Tokens**: Stateless authentication
 - **Protected Routes**: Secure access to authenticated features
 - **Password Hashing**: bcrypt encryption for password security
 
@@ -135,6 +139,11 @@ Pocket_Money_Manager/
 - **JWT** - JSON Web Tokens for authentication
 - **bcryptjs** - Password hashing
 - **express-async-handler** - Async error handling
+
+### AI
+- **OpenRouter** - Free AI gateway (https://openrouter.ai)
+- **nvidia/nemotron-3.5-super-vl:free** - Primary free model with fallbacks
+- **Vercel Serverless Function** - Proxies AI calls server-side (key never exposed)
 
 ## 🎨 Design System
 

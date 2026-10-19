@@ -86,12 +86,21 @@ MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/pocket-money-man
 JWT_SECRET=your-super-secure-jwt-secret-key-here
 NODE_ENV=production
 FRONTEND_URL=https://your-frontend-app.vercel.app
+OPENROUTER_API_KEY=sk-or-v1-your-key-here
 ```
 
 ### Frontend (.env.local)
 ```
 VITE_API_BASE_URL=https://your-backend.vercel.app/api
 ```
+
+### Frontend Vercel Environment Variables
+| Name | Value |
+|------|-------|
+| `VITE_API_BASE_URL` | `https://your-backend.vercel.app/api` |
+| `OPENROUTER_API_KEY` | `sk-or-v1-your-key-here` |
+
+> Get a free OpenRouter key at https://openrouter.ai/keys
 
 ## Troubleshooting
 

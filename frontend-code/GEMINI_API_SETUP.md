@@ -1,75 +1,62 @@
-# 🔑 Gemini API Key Setup Guide
+# 🤖 AI Setup Guide (OpenRouter)
 
-## Step 1: Get Your Free Gemini API Key
+The chatbot and AI investment advisor use **OpenRouter** — a free AI gateway that works reliably without key format issues.
 
-1. **Visit Google AI Studio**: https://aistudio.google.com/app/apikey
-2. **Sign in** with your Google account
-3. **Click "Create API Key"** or "Get API Key"
-4. **Copy your API key** (it will look like: `AIzaSy...`)
+## Step 1: Get Your Free OpenRouter API Key
 
-## Step 2: Add API Key to Your Project
+1. Go to **https://openrouter.ai** and sign up
+2. Go to **https://openrouter.ai/keys**
+3. Click **"Create Key"**
+4. Copy the key — it looks like: `sk-or-v1-...`
 
-### For Local Development:
+## Step 2: Local Development
 
-1. **Create a `.env` file** in the `frontend-code` folder (if it doesn't exist)
-2. **Add this line** to the `.env` file:
-   ```
-   VITE_GEMINI_API_KEY=your_actual_api_key_here
-   ```
-3. **Replace `your_actual_api_key_here`** with the API key you copied from Google AI Studio
-
-### Example `.env` file:
+Add to `frontend-code/.env`:
 ```
-VITE_GEMINI_API_KEY=AIzaSyAbCdEfGhIjKlMnOpQrStUvWxYz1234567
+VITE_API_BASE_URL=http://localhost:4000/api
 ```
 
-## Step 3: Restart Your Dev Server
+Add to `backend/.env`:
+```
+OPENROUTER_API_KEY=sk-or-v1-your-key-here
+```
 
-After adding the API key:
+Restart the backend:
+```bash
+cd backend
+npm run dev
+```
 
-1. **Stop your dev server** (press `Ctrl+C` in the terminal)
-2. **Start it again**:
-   ```bash
-   npm run dev
-   ```
+## Step 3: Production (Vercel)
 
-## Step 4: Test the Chatbot
+The AI calls go through a Vercel serverless function (`/api/ai`) so the key is never exposed in the browser.
 
-1. **Open your app** in the browser
-2. **Click the chatbot button** (bottom right corner)
-3. **Type a message** and send it
-4. **The chatbot should now work!** 🎉
+**Frontend Vercel project → Settings → Environment Variables:**
+| Name | Value |
+|------|-------|
+| `VITE_API_BASE_URL` | `https://your-backend.vercel.app/api` |
+| `OPENROUTER_API_KEY` | `sk-or-v1-your-key-here` |
 
-## For Production (Vercel Deployment)
+Then redeploy the frontend.
 
-If you're deploying to Vercel:
+## How It Works
 
-1. **Go to your Vercel project dashboard**
-2. **Navigate to Settings → Environment Variables**
-3. **Add a new variable**:
-   - **Name**: `VITE_GEMINI_API_KEY`
-   - **Value**: Your actual API key
-   - **Environment**: Production, Preview, Development (select all)
-4. **Redeploy your application**
+```
+Browser → /api/ai (Vercel serverless) → OpenRouter → AI Model
+```
+
+- Key is stored server-side, never in the browser bundle
+- Uses free models: `nvidia/nemotron-3.5-super-vl:free` with fallbacks
+- Automatic retry with fallback models if one is rate-limited
+
+## Features Powered by AI
+
+- **PocketPal Chatbot** — bottom-right button, answers finance & app questions
+- **AI Investment Advisor** — on Dashboard, analyzes your transactions and gives investment suggestions
+- **AI Spending Analysis** — on Analytics page, analyzes your spending patterns
 
 ## Troubleshooting
 
-### Chatbot shows "API key not configured" message:
-- ✅ Make sure your `.env` file is in the `frontend-code` folder
-- ✅ Make sure the variable name is exactly `VITE_GEMINI_API_KEY`
-- ✅ Make sure you restarted the dev server after adding the key
-- ✅ Check that there are no extra spaces or quotes around the API key
-
-### API key not working:
-- ✅ Verify your API key is correct (copy it again from Google AI Studio)
-- ✅ Make sure you haven't exceeded the free tier limits
-- ✅ Check the browser console for any error messages
-
-## Security Note
-
-⚠️ **Important**: 
-- Never commit your `.env` file to Git (it's already in `.gitignore`)
-- Never share your API key publicly
-- The `.env` file is for local development only
-- For production, use environment variables in your hosting platform (Vercel, etc.)
-
+- **"AI not configured"** — check `OPENROUTER_API_KEY` is set in Vercel env vars and redeployed
+- **"AI service unavailable"** — free model rate limit hit, will auto-retry with next model
+- **Chatbot "trouble connecting"** — make sure `VITE_API_BASE_URL` points to production backend
