@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Sparkles, RefreshCw, TrendingUp, AlertCircle } from 'lucide-react';
+import { callAI } from '../services/aiService';
+import { transactionsAPI } from '../services/api';
 
 export default function AIAdvisor() {
   const [analysis, setAnalysis] = useState('');
@@ -11,21 +13,43 @@ export default function AIAdvisor() {
     setError('');
     setAnalysis('');
 
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
-    const token = localStorage.getItem('pocket-money-token');
-
     try {
-      const response = await fetch(`${baseUrl}/ai/analyze`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await transactionsAPI.getAll();
+      const transactions = res.data || [];
 
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.message || 'Failed to get analysis');
+      if (!transactions.length) {
+        setAnalysis("You don't have any transactions yet. Add some income and expenses to get personalised investment advice!");
+        setLoading(false);
+        return;
       }
 
-      const data = await response.json();
-      setAnalysis(data.analysis);
+      const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+      const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+      const balance = totalIncome - totalExpenses;
+      const savingsRate = totalIncome > 0 ? (((totalIncome - totalExpenses) / totalIncome) * 100).toFixed(1) : 0;
+
+      const expenseByCategory = transactions
+        .filter(t => t.type === 'expense')
+        .reduce((acc, t) => { acc[t.category] = (acc[t.category] || 0) + t.amount; return acc; }, {});
+
+      const summary = `User Financial Summary:
+- Total Income: Rs.${totalIncome.toLocaleString()}
+- Total Expenses: Rs.${totalExpenses.toLocaleString()}
+- Current Balance: Rs.${balance.toLocaleString()}
+- Savings Rate: ${savingsRate}%
+- Expense Breakdown: ${JSON.stringify(expenseByCategory)}
+- Total Transactions: ${transactions.length}`;
+
+      const systemPrompt = `You are a friendly personal finance and investment advisor AI for Indian users.
+Analyze financial data and provide:
+1. Brief assessment of financial health (2-3 sentences)
+2. Top 3 actionable investment suggestions based on savings rate
+3. One key area to reduce spending
+4. Simple investment allocation (% in FD, SIP mutual funds, stocks, emergency fund)
+Be encouraging. Use Indian context (Rs., FDs, SIPs). Use emojis for section headings.`;
+
+      const result = await callAI(systemPrompt, [{ role: 'user', content: summary }]);
+      setAnalysis(result);
     } catch (err) {
       console.error('Analysis error:', err);
       setError(err.message || 'Could not fetch analysis. Please try again.');
@@ -40,9 +64,7 @@ export default function AIAdvisor() {
       const parts = line.split(/\*\*(.*?)\*\*/g);
       return (
         <p key={i} className="mb-1">
-          {parts.map((part, j) =>
-            j % 2 === 1 ? <strong key={j}>{part}</strong> : part
-          )}
+          {parts.map((part, j) => j % 2 === 1 ? <strong key={j}>{part}</strong> : part)}
         </p>
       );
     });
@@ -57,14 +79,10 @@ export default function AIAdvisor() {
           </div>
           <div>
             <h3 className="text-lg font-semibold text-primary">AI Investment Advisor</h3>
-            <p className="text-xs text-secondary">Powered by Gemini AI</p>
+            <p className="text-xs text-secondary">Powered by OpenRouter AI</p>
           </div>
         </div>
-        <button
-          onClick={fetchAnalysis}
-          disabled={loading}
-          className="btn btn-secondary flex items-center gap-2"
-        >
+        <button onClick={fetchAnalysis} disabled={loading} className="btn btn-secondary flex items-center gap-2">
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           {loading ? 'Analyzing...' : analysis ? 'Refresh' : 'Analyze'}
         </button>
@@ -74,9 +92,7 @@ export default function AIAdvisor() {
         <div className="text-center py-8">
           <TrendingUp className="w-12 h-12 text-muted mx-auto mb-3" />
           <p className="text-secondary mb-1">Get personalized investment advice</p>
-          <p className="text-sm text-muted">
-            Click Analyze to get AI-powered insights based on your transactions
-          </p>
+          <p className="text-sm text-muted">Click Analyze to get AI-powered insights based on your transactions</p>
         </div>
       )}
 

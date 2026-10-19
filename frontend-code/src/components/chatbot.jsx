@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import { ThemeContext } from '../contexts/ThemeContext';
+import { callAI } from '../services/aiService';
 
 // Sparkle Icon for loading
 const SparkleIcon = ({ className = 'w-5 h-5' }) => (
@@ -76,29 +77,23 @@ export default function Chatbot() {
   const toggleChat = () => setIsOpen(!isOpen);
   const handleInputChange = (e) => setInputValue(e.target.value);
 
-  // --- API Call to backend proxy ---
+  // --- Direct OpenRouter call ---
   const getBotResponse = async (userMessage, chatHistory) => {
     setIsLoading(true);
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
-    const token = localStorage.getItem('pocket-money-token');
+    const systemPrompt = `You are PocketPal, a friendly AI assistant for the "Pocket Money Manager" app.
+The app has: Dashboard (balance, charts), Transactions (add/edit/delete), Analytics (spending charts).
+Keep answers concise and focused on personal finance and app usage.`;
+
+    const messages = [
+      ...chatHistory.map((m) => ({
+        role: m.sender === 'user' ? 'user' : 'assistant',
+        content: m.text,
+      })),
+      { role: 'user', content: userMessage },
+    ];
 
     try {
-      const response = await fetch(`${baseUrl}/ai/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ message: userMessage, history: chatHistory }),
-      });
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.message || 'Server error');
-      }
-
-      const data = await response.json();
-      return data.reply;
+      return await callAI(systemPrompt, messages);
     } catch (error) {
       console.error('Chat error:', error);
       return "I'm having trouble connecting right now. Please try again in a moment.";
